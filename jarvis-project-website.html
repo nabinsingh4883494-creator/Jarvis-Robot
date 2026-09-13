@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JARVIS — AI Robot Project</title>
+<style>
+  :root{
+    --bg-void: #05060f;
+    --bg-deep: #0b0e2a;
+    --bg-purple: #1a1140;
+    --cyan: #3fe8e0;
+    --violet: #9d5cff;
+    --text: #eef0fb;
+    --text-dim: #8a90b8;
+    --card-bg: rgba(255,255,255,0.03);
+    --card-border: rgba(157,92,255,0.25);
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{scroll-behavior:smooth;}
+  body{
+    background: radial-gradient(ellipse at 20% 0%, #17123f 0%, var(--bg-void) 45%),
+                linear-gradient(180deg, var(--bg-void) 0%, var(--bg-deep) 40%, var(--bg-purple) 100%);
+    color: var(--text);
+    font-family: 'Inter', -apple-system, sans-serif;
+    overflow-x: hidden;
+    min-height: 100vh;
+  }
+  @font-face{
+    font-family:'Inter';
+    src: local('Inter');
+  }
+  #bg-canvas{
+    position: fixed;
+    top:0; left:0;
+    width:100vw; height:100vh;
+    z-index:0;
+    pointer-events:none;
+  }
+  .content{ position:relative; z-index:1; }
+
+  h1,h2,h3, .display{
+    font-family: 'Space Grotesk', 'Inter', sans-serif;
+    letter-spacing: -0.01em;
+  }
+
+  /* ---------- NAV ---------- */
+  nav{
+    position: fixed; top:0; left:0; right:0;
+    display:flex; justify-content:space-between; align-items:center;
+    padding: 18px 6vw;
+    z-index: 50;
+    backdrop-filter: blur(10px);
+    background: rgba(5,6,15,0.35);
+    border-bottom: 1px solid rgba(157,92,255,0.12);
+  }
+  nav .logo{ font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:1.1rem; letter-spacing:0.02em;}
+  nav .logo span{ color: var(--cyan); }
+  nav .credit{
+    font-size: 0.72rem;
+    color: var(--text-dim);
+  }
+  nav .credit b{ color: var(--cyan); font-weight:600; }
+
+  /* ---------- HERO ---------- */
+  .hero{
+    min-height: 100svh;
+    display:flex; flex-direction:column;
+    align-items:center; justify-content:center;
+    text-align:center;
+    padding: 120px 6vw 60px;
+    position: relative;
+  }
+  .eyebrow{
+    color: var(--cyan);
+    font-size: 0.85rem;
+    margin-bottom: 18px;
+    opacity: 0.85;
+  }
+  .hero h1{
+    font-size: clamp(2.6rem, 8vw, 5.2rem);
+    line-height: 1.02;
+    font-weight: 700;
+    background: linear-gradient(120deg, #ffffff 20%, var(--cyan) 60%, var(--violet) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .hero p{
+    margin-top: 22px;
+    max-width: 560px;
+    color: var(--text-dim);
+    font-size: 1.05rem;
+    line-height: 1.6;
+  }
+  .hero .maker{
+    margin-top: 34px;
+    font-size: 1rem;
+    padding: 10px 22px;
+    border: 1px solid rgba(63,232,224,0.4);
+    border-radius: 100px;
+    color: var(--text);
+    background: rgba(63,232,224,0.06);
+  }
+  .hero .maker b{ color: var(--cyan); }
+  .scroll-hint{
+    position:absolute;
+    bottom: 34px;
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    letter-spacing: 0.08em;
+  }
+
+  /* ---------- SECTION SHARED ---------- */
+  section{
+    position: relative;
+    padding: 100px 6vw;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+  .section-label{
+    color: var(--cyan);
+    font-size: 0.82rem;
+    margin-bottom: 10px;
+  }
+  section h2{
+    font-size: clamp(1.8rem, 4vw, 2.6rem);
+    font-weight: 700;
+    max-width: 640px;
+  }
+  section > .lead{
+    color: var(--text-dim);
+    max-width: 560px;
+    margin-top: 14px;
+    line-height: 1.6;
+  }
+
+  /* ---------- COMPONENTS ---------- */
+  .comp-grid{
+    display:grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px,1fr));
+    gap: 18px;
+    margin-top: 50px;
+  }
+  .comp-card{
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 14px;
+    padding: 26px 22px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.35s ease, transform 0.35s ease;
+  }
+  .comp-card::before{
+    content:'';
+    position:absolute;
+    inset: -40%;
+    background: radial-gradient(circle at center, var(--glow-color, var(--cyan)) 0%, transparent 65%);
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    pointer-events:none;
+  }
+  .comp-card:hover, .comp-card:active{
+    border-color: var(--glow-color, var(--cyan));
+    transform: translateY(-4px);
+  }
+  .comp-card:hover::before, .comp-card:active::before{
+    opacity: 0.16;
+  }
+  .comp-card .icon{
+    width: 42px; height:42px;
+    margin-bottom: 16px;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .comp-card h3{
+    font-size: 1.02rem;
+    font-weight: 600;
+    margin-bottom: 6px;
+    position: relative; z-index:1;
+  }
+  .comp-card .role{
+    font-size: 0.85rem;
+    color: var(--text-dim);
+    margin-bottom: 14px;
+    position: relative; z-index:1;
+    line-height:1.5;
+  }
+  .comp-card .price{
+    font-family:'Space Grotesk',sans-serif;
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--glow-color, var(--cyan));
+    position: relative; z-index:1;
+  }
+  .comp-total{
+    margin-top: 40px;
+    display:flex; justify-content:space-between; align-items:baseline;
+    padding: 20px 26px;
+    border: 1px solid rgba(157,92,255,0.3);
+    border-radius: 14px;
+    background: linear-gradient(90deg, rgba(63,232,224,0.06), rgba(157,92,255,0.08));
+  }
+  .comp-total span{ color: var(--text-dim); font-size:0.9rem; }
+  .comp-total b{ font-family:'Space Grotesk',sans-serif; font-size:1.5rem; color:var(--text); }
+
+  /* ---------- FEATURES ---------- */
+  .feat-list{
+    margin-top: 46px;
+    display:grid;
+    gap: 22px;
+  }
+  .feat-row{
+    display:grid;
+    grid-template-columns: 44px 1fr;
+    gap: 18px;
+    align-items:start;
+    padding-bottom: 22px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  .feat-row .num{
+    font-family:'Space Grotesk',sans-serif;
+    color: var(--violet);
+    font-size: 0.95rem;
+    opacity: 0.7;
+  }
+  .feat-row h3{ font-size:1.05rem; margin-bottom:6px; }
+  .feat-row p{ color: var(--text-dim); font-size:0.92rem; line-height:1.55; }
+
+  /* ---------- TEAM ---------- */
+  .team-hero{
+    display:flex; flex-direction:column; align-items:center; text-align:center;
+    padding: 50px 30px;
+    border: 1px solid rgba(63,232,224,0.3);
+    border-radius: 20px;
+    background: radial-gradient(circle at 50% 0%, rgba(63,232,224,0.08), transparent 70%);
+    margin-top: 44px;
+  }
+  .team-hero .tag{ color: var(--text-dim); font-size:0.85rem; margin-bottom: 14px;}
+  .team-hero h3{
+    font-size: clamp(1.8rem, 5vw, 2.6rem);
+    background: linear-gradient(120deg, var(--cyan), var(--violet));
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+  }
+  .team-hero p{ margin-top:14px; color: var(--text-dim); max-width:420px; font-size:0.92rem; }
+
+  .toggle-btn{
+    margin: 40px auto 0;
+    display:block;
+    background: rgba(157,92,255,0.1);
+    border: 1px solid rgba(157,92,255,0.4);
+    color: var(--text);
+    padding: 13px 28px;
+    border-radius: 100px;
+    font-size: 0.92rem;
+    cursor:pointer;
+    font-family: inherit;
+  }
+  .toggle-btn:hover{ background: rgba(157,92,255,0.2); }
+
+  .roster{
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.5s ease;
+    margin-top: 0;
+  }
+  .roster.open{
+    max-height: 2000px;
+    margin-top: 30px;
+  }
+  .roster-grid{
+    display:grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px,1fr));
+    gap: 10px;
+  }
+  .roster-grid .member{
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 0.83rem;
+    color: var(--text-dim);
+    display:flex; gap:8px; align-items:baseline;
+  }
+  .roster-grid .member .n{ color: var(--cyan); font-family:'Space Grotesk',sans-serif; font-size:0.72rem; opacity:0.7;}
+
+  /* ---------- FOOTER ---------- */
+  footer{
+    text-align:center;
+    padding: 60px 6vw 50px;
+    color: var(--text-dim);
+    font-size: 0.85rem;
+    border-top: 1px solid rgba(255,255,255,0.06);
+  }
+  footer b{ color: var(--cyan); }
+
+  @media (max-width: 600px){
+    section{ padding: 70px 6vw; }
+    .hero{ padding-top: 100px; }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="bg-canvas"></canvas>
+
+<nav>
+  <div class="logo">JARVIS<span>.</span></div>
+  <div class="credit">Programmed by <b>Nabin Mahato</b></div>
+</nav>
+
+<div class="content">
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="eyebrow">CLASS 9 · SECTION A · SCHOOL PROJECT</div>
+    <h1>JARVIS</h1>
+    <p>A voice-controlled AI robot that moves, listens, speaks in three languages, and reacts with a bit of personality — built from scratch on an ESP32-S3.</p>
+    <div class="maker">Programmed by <b>Nabin Mahato</b></div>
+    <div class="scroll-hint">SCROLL TO EXPLORE ↓</div>
+  </div>
+
+  <!-- WHAT IT DOES -->
+  <section id="features">
+    <div class="section-label">WHAT JARVIS DOES</div>
+    <h2>One robot, four ways to talk to it.</h2>
+    <p class="lead">Jarvis runs core movement locally, and reaches out to the internet for anything that needs a brain.</p>
+
+    <div class="feat-list">
+      <div class="feat-row">
+        <div class="num">01</div>
+        <div>
+          <h3>Voice activation</h3>
+          <p>Say "Hey Siri, start the Jarvis" from up to 10 meters away — Jarvis wakes up and introduces itself, in English, Hindi, and Nepali.</p>
+        </div>
+      </div>
+      <div class="feat-row">
+        <div class="num">02</div>
+        <div>
+          <h3>Telegram control</h3>
+          <p>Send movement commands or ask Jarvis a question from anywhere with internet — not just on local Wi-Fi.</p>
+        </div>
+      </div>
+      <div class="feat-row">
+        <div class="num">03</div>
+        <div>
+          <h3>Mobile app control</h3>
+          <p>A Blynk app dashboard with forward, back, left, right and stop — direct control over the local network.</p>
+        </div>
+      </div>
+      <div class="feat-row">
+        <div class="num">04</div>
+        <div>
+          <h3>Expressive display</h3>
+          <p>An OLED face that switches between happy, funny, confused, angry, thinking and neutral expressions as Jarvis talks.</p>
+        </div>
+      </div>
+      <div class="feat-row">
+        <div class="num">05</div>
+        <div>
+          <h3>Obstacle sensing</h3>
+          <p>An ultrasonic sensor stops the robot automatically before it runs into something, regardless of what command is running.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- COMPONENTS -->
+  <section id="components">
+    <div class="section-label">INSIDE JARVIS</div>
+    <h2>Every part that makes it move, see, and speak.</h2>
+    <p class="lead">Sourced piece by piece and wired together on a custom EasyEDA schematic.</p>
+
+    <div class="comp-grid" id="comp-grid">
+      <!-- filled by JS -->
+    </div>
+
+    <div class="comp-total">
+      <span>Total project cost</span>
+      <b id="total-cost">Rs. —</b>
+    </div>
+  </section>
+
+  <!-- TEAM -->
+  <section id="team">
+    <div class="section-label">MADE POSSIBLE BY</div>
+    <h2>Built by one class, together.</h2>
+    <p class="lead">Every student of Class 9, Section A contributed toward this project.</p>
+
+    <div class="team-hero">
+      <div class="tag">PROGRAMMED &amp; ENGINEERED BY</div>
+      <h3>Nabin Mahato</h3>
+      <p>Wiring, coding, and design for the entire Jarvis system — motors, sensors, voice, and this website.</p>
+    </div>
+
+    <button class="toggle-btn" id="roster-toggle">See all 43 team members</button>
+    <div class="roster" id="roster">
+      <div class="roster-grid" id="roster-grid"></div>
+    </div>
+  </section>
+
+  <footer>
+    <div>JARVIS — an AI robot project by <b>Class 9A</b></div>
+    <div style="margin-top:6px;">Programmed by <b>Nabin Mahato</b></div>
+  </footer>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* ---------------- DATA ---------------- */
+const components = [
+  {name:"ESP32-S3-N16R8", role:"Main microcontroller — brains of the robot", price:1745, color:"#3fe8e0"},
+  {name:"L298N Motor Driver", role:"Drives all four gear motors", price:399, color:"#9d5cff"},
+  {name:"HC-SR04 Sensor", role:"Ultrasonic distance sensing for obstacles", price:195, color:"#3fe8e0"},
+  {name:"SSD1306 OLED Display", role:"Shows Jarvis's animated face", price:883, color:"#9d5cff"},
+  {name:"INMP441 Microphone", role:"Picks up voice commands", price:715, color:"#3fe8e0"},
+  {name:"MAX98357A Amplifier", role:"Drives the speaker output", price:864, color:"#9d5cff"},
+  {name:"LM2596 Buck Converter", role:"Steps down voltage for logic power", price:249, color:"#3fe8e0"},
+  {name:"MP1584EN Module", role:"Secondary voltage regulation", price:349, color:"#9d5cff"},
+  {name:"Speaker", role:"Voice + sound output", price:892, color:"#3fe8e0"},
+  {name:"12V 6000mAh Battery", role:"Powers the whole robot", price:1270, color:"#9d5cff"},
+  {name:"BO Motors + Wheels ×4", role:"Movement — forward, back, turn", price:771, color:"#3fe8e0"},
+  {name:"Jumper Wire Sets", role:"Wiring every module together", price:750, color:"#9d5cff"},
+];
+
+const team = ["Devanand Mahato","Niranjan Yadav","Niraj Purbe","Nabin Mahato","Dipak Thakur","Arvind Yadav","Aaditya Sharma","Sanjay Sharma","Aashish Mahato","Prince Raj Yadav","Dhirajnath Mahato","Himanshu Maheseth","Aman Ansari","Keshav Gupta","Mahesh Yadav","Sumit Mahato","Ritesh Sah","Salendar Mahato","Preety Mahato","Sharaya Chy","Anjula Mahato","Swikriti Sah","Shrijana Yadav","Jyoti A","Jyoti B","Kiran Mahato","Bhumika Mahato","Laxmi Mahato","Hariom Mahato","Chanchal Chy","Shrijana Yadav B","Binita Mahato","Kanchan Mahato","Sandhya Mahato","Pamila Chy","Roopana Chy","Radhika Yadav","Monika Chy","Anuwabi Sah","Tej Narayan Yadav","Yash Chy","Chitu Yadav","Pragya Yadav"];
+
+/* ---------------- RENDER COMPONENTS ---------------- */
+const grid = document.getElementById('comp-grid');
+let total = 0;
+components.forEach(c=>{
+  total += c.price;
+  const card = document.createElement('div');
+  card.className = 'comp-card';
+  card.style.setProperty('--glow-color', c.color);
+  card.innerHTML = `
+    <div class="icon">
+      <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+        <rect x="4" y="4" width="28" height="28" rx="6" stroke="${c.color}" stroke-width="1.5" opacity="0.8"/>
+        <circle cx="18" cy="18" r="6" stroke="${c.color}" stroke-width="1.5"/>
+      </svg>
+    </div>
+    <h3>${c.name}</h3>
+    <div class="role">${c.role}</div>
+    <div class="price">Rs. ${c.price.toLocaleString()}</div>
+  `;
+  grid.appendChild(card);
+});
+document.getElementById('total-cost').textContent = 'Rs. ' + total.toLocaleString();
+
+/* ---------------- RENDER TEAM ---------------- */
+const rosterGrid = document.getElementById('roster-grid');
+team.forEach((name,i)=>{
+  const el = document.createElement('div');
+  el.className = 'member';
+  el.innerHTML = `<span class="n">${String(i+1).padStart(2,'0')}</span>${name}`;
+  rosterGrid.appendChild(el);
+});
+
+const toggleBtn = document.getElementById('roster-toggle');
+const roster = document.getElementById('roster');
+toggleBtn.addEventListener('click', ()=>{
+  roster.classList.toggle('open');
+  toggleBtn.textContent = roster.classList.contains('open') ? 'Hide member list' : 'See all 43 team members';
+});
+
+/* ---------------- THREE.JS BACKGROUND ---------------- */
+let scene, camera, renderer, shapes = [];
+function initThree(){
+  const canvas = document.getElementById('bg-canvas');
+  scene = new THREE.Scene();
+  camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 1000);
+  camera.position.z = 30;
+
+  renderer = new THREE.WebGLRenderer({canvas, alpha:true, antialias:true});
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+
+  const geometries = [
+    new THREE.IcosahedronGeometry(2.2,0),
+    new THREE.OctahedronGeometry(2,0),
+    new THREE.TorusGeometry(1.8,0.5,8,20),
+    new THREE.TetrahedronGeometry(2.4,0),
+    new THREE.IcosahedronGeometry(1.6,0),
+  ];
+  const colors = [0x3fe8e0, 0x9d5cff, 0x3fe8e0, 0x9d5cff, 0x3fe8e0];
+
+  for(let i=0;i<14;i++){
+    const geo = geometries[i % geometries.length];
+    const mat = new THREE.MeshBasicMaterial({
+      color: colors[i % colors.length],
+      wireframe: true,
+      transparent: true,
+      opacity: 0.28
+    });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.position.set(
+      (Math.random()-0.5)*40,
+      (Math.random()-0.5)*140 - 20,
+      (Math.random()-0.5)*20 - 10
+    );
+    mesh.userData.rotSpeed = {
+      x: (Math.random()-0.5)*0.01,
+      y: (Math.random()-0.5)*0.01
+    };
+    scene.add(mesh);
+    shapes.push(mesh);
+  }
+
+  window.addEventListener('resize', onResize);
+  animate();
+}
+
+function onResize(){
+  camera.aspect = window.innerWidth/window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+}
+
+let scrollY = 0;
+window.addEventListener('scroll', ()=>{ scrollY = window.scrollY; });
+
+function animate(){
+  requestAnimationFrame(animate);
+  const docHeight = document.body.scrollHeight - window.innerHeight;
+  const progress = docHeight > 0 ? scrollY/docHeight : 0;
+
+  camera.position.y = -progress * 120;
+
+  shapes.forEach(s=>{
+    s.rotation.x += s.userData.rotSpeed.x;
+    s.rotation.y += s.userData.rotSpeed.y;
+  });
+
+  renderer.render(scene, camera);
+}
+
+if(window.WebGLRenderingContext){ initThree(); }
+</script>
+
+</body>
+</html>
